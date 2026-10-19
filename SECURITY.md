@@ -5,7 +5,7 @@
 Please **do not** report security vulnerabilities through public GitHub issues, discussions, or pull requests.
 
 Report them privately via
-[GitHub private vulnerability reporting](https://github.com/egretdb/engine/security/advisories/new).
+[GitHub private vulnerability reporting](https://github.com/egret-data/engine/security/advisories/new).
 
 Please include:
 
