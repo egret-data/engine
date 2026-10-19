@@ -26,7 +26,7 @@ race, caste, color, religion, or sexual identity and orientation.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the maintainers through
-[GitHub private vulnerability reporting](https://github.com/egretdb/engine/security/advisories/new) or by contacting
+[GitHub private vulnerability reporting](https://github.com/egret-data/engine/security/advisories/new) or by contacting
 a maintainer directly. All complaints will be reviewed and investigated promptly and fairly.
 
 The full text of the Contributor Covenant, including enforcement guidelines, applies and is available at
