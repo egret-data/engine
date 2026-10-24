@@ -3,6 +3,8 @@ use std::sync::Arc;
 
 use arrow_pg::datatypes::df::encode_dataframe;
 use async_trait::async_trait;
+use datafusion::common::tree_node::{TreeNode, TreeNodeRecursion};
+use datafusion::logical_expr::{DdlStatement, LogicalPlan};
 use datafusion::prelude::SessionContext;
 use datafusion::sql::parser::{DFParser, Statement};
 use datafusion::sql::sqlparser::dialect::PostgreSqlDialect;
@@ -17,7 +19,7 @@ use pgwire::api::{ClientInfo, ClientPortalStore, PgWireServerHandlers};
 use pgwire::error::{PgWireError, PgWireResult};
 use pgwire::messages::PgWireBackendMessage;
 
-use crate::error::to_pg_error;
+use crate::error::{not_supported, to_pg_error};
 
 /// Serves one client connection. Owns that connection's DataFusion session, so session state
 /// (settings, temporary tables) is never shared between connections.
@@ -44,6 +46,7 @@ impl ConnectionHandler {
             .statement_to_plan(statement)
             .await
             .map_err(to_pg_error)?;
+        reject_unsupported(&plan)?;
         let df = self
             .ctx
             .execute_logical_plan(plan)
@@ -57,6 +60,29 @@ impl ConnectionHandler {
         // Sending drains the DataFrame's stream, which is what executes DML and queries.
         let response = encode_dataframe(df, &Format::UnifiedText, None).await?;
         send_query_response(client, response, true).await
+    }
+}
+
+/// Rejects plans that read or write arbitrary local files, anywhere in the plan (including under
+/// `EXPLAIN ANALYZE`, which executes its input). Tables come from Iceberg catalogs instead.
+fn reject_unsupported(plan: &LogicalPlan) -> PgWireResult<()> {
+    let mut unsupported = None;
+    plan.apply(|node| {
+        unsupported = match node {
+            LogicalPlan::Ddl(DdlStatement::CreateExternalTable(_)) => Some("CREATE EXTERNAL TABLE"),
+            LogicalPlan::Copy(_) => Some("COPY"),
+            _ => None,
+        };
+        Ok(if unsupported.is_some() {
+            TreeNodeRecursion::Stop
+        } else {
+            TreeNodeRecursion::Continue
+        })
+    })
+    .map_err(to_pg_error)?;
+    match unsupported {
+        Some(feature) => Err(not_supported(feature)),
+        None => Ok(()),
     }
 }
 

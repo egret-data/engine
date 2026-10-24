@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use datafusion::prelude::SessionContext;
-use egret_engine_pgwire::{PgWireServer, SYNTAX_ERROR, SessionFactory};
+use egret_engine_pgwire::{FEATURE_NOT_SUPPORTED, PgWireServer, SYNTAX_ERROR, SessionFactory};
 use futures::StreamExt;
 use tokio::sync::oneshot;
 use tokio_postgres::{Client, NoTls, SimpleQueryMessage};
@@ -230,4 +230,77 @@ async fn failing_statement_keeps_earlier_results_and_skips_the_rest() {
         "{error}"
     );
     assert!(skipped.is_err(), "statement after the error must not run");
+}
+
+/// A path in the system temp directory that is unique to this test run.
+fn temp_path(name: &str) -> std::path::PathBuf {
+    std::env::temp_dir().join(format!("egret-engine-{}-{name}", std::process::id()))
+}
+
+#[tokio::test]
+async fn create_external_table_is_rejected() {
+    // Arrange
+    let server = start_server().await;
+    let client = connect(&server).await;
+    let location = std::env::temp_dir();
+
+    // Act
+    let error = client
+        .simple_query(&format!(
+            "CREATE EXTERNAL TABLE ext (a INT) STORED AS CSV LOCATION '{}'",
+            location.display()
+        ))
+        .await
+        .unwrap_err();
+
+    // Assert
+    assert_eq!(
+        error.code().expect("sqlstate").code(),
+        FEATURE_NOT_SUPPORTED
+    );
+}
+
+#[tokio::test]
+async fn copy_to_is_rejected_and_writes_nothing() {
+    // Arrange
+    let server = start_server().await;
+    let client = connect(&server).await;
+    let path = temp_path("copy.csv");
+
+    // Act
+    let error = client
+        .simple_query(&format!("COPY (SELECT 1) TO '{}'", path.display()))
+        .await
+        .unwrap_err();
+
+    // Assert
+    assert_eq!(
+        error.code().expect("sqlstate").code(),
+        FEATURE_NOT_SUPPORTED
+    );
+    assert!(!path.exists(), "COPY must not create {}", path.display());
+}
+
+#[tokio::test]
+async fn copy_inside_explain_analyze_is_rejected() {
+    // Arrange
+    let server = start_server().await;
+    let client = connect(&server).await;
+    let path = temp_path("explain-copy.csv");
+
+    // Act
+    let error = client
+        .simple_query(&format!(
+            "EXPLAIN ANALYZE COPY (SELECT 1) TO '{}'",
+            path.display()
+        ))
+        .await
+        .unwrap_err();
+
+    // Assert
+    assert_eq!(
+        error.code().expect("sqlstate").code(),
+        FEATURE_NOT_SUPPORTED
+    );
+    assert!(!path.exists(), "COPY must not create {}", path.display());
 }

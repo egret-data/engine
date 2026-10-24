@@ -3,6 +3,8 @@ use pgwire::error::{ErrorInfo, PgWireError};
 
 /// SQLSTATE `42601`: syntax error.
 pub const SYNTAX_ERROR: &str = "42601";
+/// SQLSTATE `0A000`: feature not supported.
+pub const FEATURE_NOT_SUPPORTED: &str = "0A000";
 /// SQLSTATE `XX000`: internal error.
 pub const INTERNAL_ERROR: &str = "XX000";
 
@@ -21,6 +23,15 @@ pub fn to_pg_error(error: DataFusionError) -> PgWireError {
         "ERROR".to_owned(),
         code.to_owned(),
         error.to_string(),
+    )))
+}
+
+/// Builds the `ERROR` response for a statement Egret Engine deliberately does not support.
+pub(crate) fn not_supported(feature: &str) -> PgWireError {
+    PgWireError::UserError(Box::new(ErrorInfo::new(
+        "ERROR".to_owned(),
+        FEATURE_NOT_SUPPORTED.to_owned(),
+        format!("{feature} is not supported"),
     )))
 }
 
@@ -84,6 +95,25 @@ mod tests {
                 assert_eq!(info.severity, "ERROR");
                 assert_eq!(info.code, INTERNAL_ERROR);
                 assert!(info.message.contains("boom"), "{}", info.message);
+            }
+            other => panic!("unexpected error variant: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn not_supported_builds_feature_not_supported_error() {
+        // Arrange
+        let feature = "COPY";
+
+        // Act
+        let pg_error = not_supported(feature);
+
+        // Assert
+        match pg_error {
+            PgWireError::UserError(info) => {
+                assert_eq!(info.severity, "ERROR");
+                assert_eq!(info.code, FEATURE_NOT_SUPPORTED);
+                assert_eq!(info.message, "COPY is not supported");
             }
             other => panic!("unexpected error variant: {other:?}"),
         }
