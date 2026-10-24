@@ -1,0 +1,29 @@
+[package]
+name = "egret-engine-server"
+description = "The egret-engine binary"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "egret-engine"
+path = "src/main.rs"
+
+[dependencies]
+clap = { workspace = true }
+datafusion = { workspace = true }
+egret-engine-common = { workspace = true }
+egret-engine-pgwire = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[dev-dependencies]
+tokio-postgres = { workspace = true }
+
+[lints]
+workspace = true
