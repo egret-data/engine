@@ -74,7 +74,7 @@ tokio-postgres 0.7.
 - [ ] **Step 1: Open the issue and branch**
 
 ```bash
-gh issue create -R egretdb/engine --title "P0/M0: Foundation" --label enhancement \
+gh issue create -R egret-data/engine --title "P0/M0: Foundation" --label enhancement \
   --body "Implements milestone M0 of docs/superpowers/plans/2026-10-17-p0-roadmap.md following docs/superpowers/plans/2026-10-17-p0-m0-foundation.md."
 git checkout main && git pull
 git checkout -b feat/p0-m0-foundation
@@ -94,7 +94,7 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.99"
 license = "Apache-2.0"
-repository = "https://github.com/egretdb/engine"
+repository = "https://github.com/egret-data/engine"
 publish = false
 
 [workspace.dependencies]
@@ -1825,7 +1825,7 @@ Expected: clean; 25 tests pass in total (9 common, 4 pgwire unit, 6 pgwire proto
 git add Cargo.lock crates/server README.md
 git commit -m "feat(server): add egret-engine binary with config, role selection and graceful shutdown"
 git push -u origin feat/p0-m0-foundation
-gh pr create -R egretdb/engine --base main --title "feat: P0/M0 foundation" \
+gh pr create -R egret-data/engine --base main --title "feat: P0/M0 foundation" \
   --body "Implements milestone M0 (workspace, CI, configuration, pgwire simple-query frontend, egret-engine binary). Closes #<issue>"
 ```
 

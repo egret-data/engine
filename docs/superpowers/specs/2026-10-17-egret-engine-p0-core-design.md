@@ -78,7 +78,7 @@ and single-node deployments).
 |---|---|
 | DataFusion | 55.x |
 | arrow / parquet | 59.2 |
-| datafusion-distributed | Fork `egretdb/datafusion-distributed`, branch `egret/main`, pinned revision |
+| datafusion-distributed | Fork `egret-data/datafusion-distributed`, branch `egret/main`, pinned revision |
 | iceberg-rust | Revision `5b82ab99` (same as datafusion-iceberg); thin fork only if needed (see §2.2) |
 | pgwire | 0.41 (plus `arrow-pg` and `datafusion-pg-catalog` from datafusion-postgres) |
 | foyer | 0.22 |
@@ -366,7 +366,7 @@ queue_timeout = "60s"
 
 ### 5.1 datafusion-distributed fork
 
-- Repository `egretdb/datafusion-distributed`, branch `egret/main`, rebased on upstream monthly as a small patch
+- Repository `egret-data/datafusion-distributed`, branch `egret/main`, rebased on upstream monthly as a small patch
   series.
 - P0 patches: (1) per-query memory pools on workers; (2) `TaskKey.attempt` in the protocol (unused until P1).
 - Affinity, the Iceberg feed and credentials use public hooks (`RouteTaskHandler`, work unit feeds, codecs) — no fork

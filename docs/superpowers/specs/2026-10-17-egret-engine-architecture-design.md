@@ -2,7 +2,7 @@
 
 - **Date:** 2026-10-17
 - **Status:** Design approved; spec under review
-- **Repository:** `github.com/egretdb/engine` (org planned to be renamed `egret-data`)
+- **Repository:** `github.com/egret-data/engine`
 - **Research:** [`docs/research/2026-10-17-engine-research.md`](../../research/2026-10-17-engine-research.md)
 - **P0 detailed design:** [`2026-10-17-egret-engine-p0-core-design.md`](2026-10-17-egret-engine-p0-core-design.md)
 
@@ -39,9 +39,9 @@ Target workload: **both interactive/BI (low latency) and heavy ETL** (CTAS/INSER
 
 ### Naming and licensing
 
-- GitHub org `egretdb` (planned rename to `egret-data`): repositories `platform` (the egret platform) and `engine`
+- GitHub org `egret-data` (formerly `egretdb`): repositories `platform` (the egret platform) and `engine`
   (this repository).
-- Rust packages `egret-engine-<x>` in `crates/<x>`; binary `egret-engine`; container image `egretdb/engine`; Helm
+- Rust packages `egret-engine-<x>` in `crates/<x>`; binary `egret-engine`; container image `egret-data/engine`; Helm
   chart `egret-engine`. This avoids clashing with the platform's `egret-*` crates.
 - License: Apache-2.0.
 
