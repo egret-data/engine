@@ -50,7 +50,10 @@ async fn run(cli: Cli) -> Result<(), Box<dyn Error>> {
 /// Completes on Ctrl-C or, on Unix, SIGTERM.
 async fn shutdown_signal() {
     let ctrl_c = async {
-        let _ = tokio::signal::ctrl_c().await;
+        if let Err(error) = tokio::signal::ctrl_c().await {
+            tracing::warn!(%error, "cannot listen for Ctrl-C");
+            std::future::pending::<()>().await;
+        }
     };
     #[cfg(unix)]
     let terminate = async {
@@ -59,7 +62,10 @@ async fn shutdown_signal() {
             Ok(mut sigterm) => {
                 sigterm.recv().await;
             }
-            Err(_) => std::future::pending::<()>().await,
+            Err(error) => {
+                tracing::warn!(%error, "cannot listen for SIGTERM");
+                std::future::pending::<()>().await;
+            }
         }
     };
     #[cfg(not(unix))]
