@@ -34,8 +34,11 @@ pgwire_listen = "127.0.0.1:5432"
 ```
 
 ```bash
-EGRET_ENGINE__SERVER__PGWIRE_LISTEN=0.0.0.0:15432 cargo run -p egret-engine-server
+EGRET_ENGINE__SERVER__PGWIRE_LISTEN=127.0.0.1:15432 cargo run -p egret-engine-server
 ```
+
+M0 has no authentication: every client that can reach the pgwire port gets full access, so keep it
+bound to localhost and do not expose it beyond the local machine.
 
 ## Design
 
