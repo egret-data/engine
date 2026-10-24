@@ -12,7 +12,33 @@ It aims to combine:
   scheduling, async materialized views with transparent query rewrite.
 - **RisingWave-style CDC** — continuous ingestion from PostgreSQL/MySQL into Iceberg.
 
-> **Status:** early design phase. Nothing is usable yet. See the design documents below.
+> **Status:** early development. Milestone M0 serves SQL over the PostgreSQL wire protocol from an in-memory
+> DataFusion session; Iceberg support arrives in M1.
+
+## Getting started
+
+Requires [rustup](https://rustup.rs/); the toolchain pinned in `rust-toolchain.toml` is installed automatically.
+
+```bash
+cargo run -p egret-engine-server -- --role all
+psql -h 127.0.0.1 -p 5432 -U demo -c "SELECT 1 AS one"
+```
+
+Configuration is read from built-in defaults, then an optional TOML file (`--config engine.toml`), then
+environment variables prefixed with `EGRET_ENGINE__` (nested keys separated by `__`):
+
+```toml
+[server]
+role = "all"                    # coordinator | worker | all
+pgwire_listen = "127.0.0.1:5432"
+```
+
+```bash
+EGRET_ENGINE__SERVER__PGWIRE_LISTEN=127.0.0.1:15432 cargo run -p egret-engine-server
+```
+
+M0 has no authentication: every client that can reach the pgwire port gets full access, so keep it
+bound to localhost and do not expose it beyond the local machine.
 
 ## Design
 
