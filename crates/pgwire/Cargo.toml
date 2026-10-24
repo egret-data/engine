@@ -1,0 +1,23 @@
+[package]
+name = "egret-engine-pgwire"
+description = "PostgreSQL wire protocol frontend for Egret Engine"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+arrow-pg = { workspace = true }
+async-trait = { workspace = true }
+datafusion = { workspace = true }
+pgwire = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tokio-postgres = { workspace = true }
+
+[lints]
+workspace = true
