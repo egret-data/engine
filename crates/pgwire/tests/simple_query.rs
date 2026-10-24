@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use datafusion::prelude::SessionContext;
 use egret_engine_pgwire::{PgWireServer, SYNTAX_ERROR, SessionFactory};
+use futures::StreamExt;
 use tokio::sync::oneshot;
 use tokio_postgres::{Client, NoTls, SimpleQueryMessage};
 
@@ -176,4 +177,57 @@ async fn sessions_are_isolated_per_connection() {
             .contains("not found"),
         "{error}"
     );
+}
+
+#[tokio::test]
+async fn statements_see_effects_of_earlier_statements() {
+    // Arrange
+    let server = start_server().await;
+    let client = connect(&server).await;
+
+    // Act
+    let messages = client
+        .simple_query(
+            "CREATE TABLE m (a INT) AS VALUES (1); INSERT INTO m VALUES (2); \
+             SELECT count(*) FROM m",
+        )
+        .await
+        .expect("query");
+
+    // Assert
+    assert_eq!(rows(&messages).last(), Some(&vec![s("2")]));
+}
+
+#[tokio::test]
+async fn failing_statement_keeps_earlier_results_and_skips_the_rest() {
+    // Arrange
+    let server = start_server().await;
+    let client = connect(&server).await;
+
+    // Act
+    let stream = client
+        .simple_query_raw("SELECT 1; SELECT * FROM nope; CREATE TABLE skipped AS VALUES (3)")
+        .await
+        .expect("query");
+    let mut results: Vec<_> = stream.collect().await;
+    let skipped = client.simple_query("SELECT * FROM skipped").await;
+
+    // Assert
+    let Some(Err(error)) = results.pop() else {
+        panic!("expected the batch to end with an error");
+    };
+    let messages: Vec<SimpleQueryMessage> = results
+        .into_iter()
+        .map(|m| m.expect("message before the error"))
+        .collect();
+    assert_eq!(rows(&messages), vec![vec![s("1")]]);
+    assert!(
+        error
+            .as_db_error()
+            .expect("db error")
+            .message()
+            .contains("nope"),
+        "{error}"
+    );
+    assert!(skipped.is_err(), "statement after the error must not run");
 }

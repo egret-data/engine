@@ -1606,6 +1606,7 @@ dependencies = [
  "arrow-pg",
  "async-trait",
  "datafusion",
+ "futures",
  "pgwire",
  "tokio",
  "tokio-postgres",

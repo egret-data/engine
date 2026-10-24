@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::sync::Arc;
 
 use arrow_pg::datatypes::df::encode_dataframe;
@@ -5,14 +6,16 @@ use async_trait::async_trait;
 use datafusion::prelude::SessionContext;
 use datafusion::sql::parser::{DFParser, Statement};
 use datafusion::sql::sqlparser::dialect::PostgreSqlDialect;
+use futures::Sink;
 use pgwire::api::auth::StartupHandler;
 use pgwire::api::auth::noop::NoopStartupHandler;
 use pgwire::api::portal::Format;
-use pgwire::api::query::SimpleQueryHandler;
+use pgwire::api::query::{SimpleQueryHandler, send_execution_response, send_query_response};
 use pgwire::api::results::{Response, Tag};
 use pgwire::api::store::PortalStore;
 use pgwire::api::{ClientInfo, ClientPortalStore, PgWireServerHandlers};
-use pgwire::error::PgWireResult;
+use pgwire::error::{PgWireError, PgWireResult};
+use pgwire::messages::PgWireBackendMessage;
 
 use crate::error::to_pg_error;
 
@@ -27,7 +30,14 @@ impl ConnectionHandler {
         Self { ctx }
     }
 
-    async fn execute(&self, statement: Statement) -> PgWireResult<Response> {
+    /// Runs one statement to completion and sends its result to the client, so the next statement
+    /// of the query observes its effects.
+    async fn execute<C>(&self, client: &mut C, statement: Statement) -> PgWireResult<()>
+    where
+        C: Sink<PgWireBackendMessage> + Unpin,
+        C::Error: Debug,
+        PgWireError: From<<C as Sink<PgWireBackendMessage>>::Error>,
+    {
         let plan = self
             .ctx
             .state()
@@ -42,10 +52,11 @@ impl ConnectionHandler {
         // Statements without output columns (DDL, SET) have already run inside
         // `execute_logical_plan`.
         if df.schema().fields().is_empty() {
-            return Ok(Response::Execution(Tag::new("OK")));
+            return send_execution_response(client, Tag::new("OK")).await;
         }
+        // Sending drains the DataFrame's stream, which is what executes DML and queries.
         let response = encode_dataframe(df, &Format::UnifiedText, None).await?;
-        Ok(Response::Query(response))
+        send_query_response(client, response, true).await
     }
 }
 
@@ -54,21 +65,25 @@ impl NoopStartupHandler for ConnectionHandler {}
 
 #[async_trait]
 impl SimpleQueryHandler for ConnectionHandler {
-    async fn do_query<C>(&self, _client: &mut C, query: &str) -> PgWireResult<Vec<Response>>
+    async fn do_query<C>(&self, client: &mut C, query: &str) -> PgWireResult<Vec<Response>>
     where
-        C: ClientInfo + ClientPortalStore + Unpin + Send + Sync,
+        C: ClientInfo + ClientPortalStore + Sink<PgWireBackendMessage> + Unpin + Send + Sync,
         C::PortalStore: PortalStore,
+        C::Error: Debug,
+        PgWireError: From<<C as Sink<PgWireBackendMessage>>::Error>,
     {
         let statements =
             DFParser::parse_sql_with_dialect(query, &PostgreSqlDialect {}).map_err(to_pg_error)?;
         if statements.is_empty() {
             return Ok(vec![Response::EmptyQuery]);
         }
-        let mut responses = Vec::with_capacity(statements.len());
+        // Each statement's result is sent before the next statement is planned. On error the
+        // results already sent stay with the client, pgwire follows them with the ErrorResponse
+        // and ReadyForQuery, and the remaining statements are skipped, as in PostgreSQL.
         for statement in statements {
-            responses.push(self.execute(statement).await?);
+            self.execute(client, statement).await?;
         }
-        Ok(responses)
+        Ok(Vec::new())
     }
 }
 

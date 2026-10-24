@@ -12,6 +12,7 @@ publish.workspace = true
 arrow-pg = { workspace = true }
 async-trait = { workspace = true }
 datafusion = { workspace = true }
+futures = { workspace = true }
 pgwire = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
