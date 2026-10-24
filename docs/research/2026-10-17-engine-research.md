@@ -220,5 +220,5 @@ identity; (5) caches are outside DataFusion's memory pool — subtract their bud
    (embedded `regorus` and remote HTTP, Trino-OPA-style contract, batched). Deny wins. The platform publishes an OPA
    bundle instead of a Ranger feed. Ranger is out of P0 (can be added later through the `PolicySource` trait).
    Authorization is enforced on the coordinator at planning time.
-8. Naming: GitHub org `egretdb` (planned rename to `egret-data`), repo `engine`, crates `egret-engine-<x>`,
+8. Naming: GitHub org `egret-data` (formerly `egretdb`), repo `engine`, crates `egret-engine-<x>`,
    binary `egret-engine`. License: Apache-2.0.
